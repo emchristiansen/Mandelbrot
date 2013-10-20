@@ -7,6 +7,7 @@ import Data.List
 import Data.Colour.RGBSpace
 import Data.Colour.RGBSpace.HSL
 
+maxIterations :: Int
 maxIterations = 1000
 
 mandelbrotIteration :: Double -> Double -> (Double, Double) -> (Double, Double)
@@ -22,40 +23,40 @@ mandelbrotEscapeIteration y0 x0 =
 
 mandelbrotColor :: Maybe Int -> (Word8, Word8, Word8)
 mandelbrotColor Nothing = (0, 0, 0)
-mandelbrotColor (Just iteration) = (byte red, byte green, byte blue) 
+mandelbrotColor (Just iteration) = (toByte red, toByte green, toByte blue) 
  where
   fraction = (log (fromIntegral iteration)) / (log (fromIntegral maxIterations))
   hue = 360 * fraction
   saturation = 1
   lightness = fraction
   RGB red green blue = hsl hue saturation lightness
-  byte x = fromIntegral $ round (x * 255)
+  toByte fractional = fromIntegral $ round (fractional * 255)
 
 -- From http://en.wikipedia.org/wiki/Mandelbrot_set#Escape_time_algorithm
 mandelbrotEscapeTime :: Double -> Double -> (Word8, Word8, Word8)
 mandelbrotEscapeTime y0 x0 = 
   mandelbrotColor $ mandelbrotEscapeIteration y0 x0
 
-
-pixels :: Int -> Int -> [(Word8, Word8, Word8)]
-pixels height width = do
- yPixel <- [0 .. height - 1]
- xPixel <- [0 .. width - 1]
- let yScaled = (fromIntegral yPixel) / (fromIntegral height) * 2 - 1
- let xScaled = (fromIntegral xPixel) / (fromIntegral width) * 3.5 - 2.5
- return $ mandelbrotEscapeTime yScaled xScaled 
-
+mandelbrotPixels :: Int -> Int -> [(Word8, Word8, Word8)]
+mandelbrotPixels height width = do
+  yPixel <- [0 .. height - 1]
+  xPixel <- [0 .. width - 1]
+  let yScaled = (fromIntegral yPixel) / (fromIntegral height) * 2 - 1
+  let xScaled = (fromIntegral xPixel) / (fromIntegral width) * 3.5 - 2.5
+  return $ mandelbrotEscapeTime yScaled xScaled 
 
 main :: IO ()
 main = do
- args <- getArgs
- putStrLn $ show args 
- let [heightString, filename] = args
- let height = read heightString :: Int
- let width = round $ (3.5 / 2.0) * (fromIntegral height)
- let arr = fromList (Z :. height :. width) (pixels height width) :: Array U DIM2 (Word8, Word8, Word8)
- writeImageToBMP filename arr
- putStrLn $ show height
- putStrLn filename
- putStrLn "Done"
+  args <- getArgs
+  putStrLn $ show args 
+  let [heightString, filename] = args
+  let height = read heightString :: Int
+  let width = round $ (3.5 / 2.0) * (fromIntegral height)
+  let shape = Z :. height :. width
+  let pixels = mandelbrotPixels height width
+  let arr = fromList shape pixels :: Array U DIM2 (Word8, Word8, Word8)
+  writeImageToBMP filename arr
+  putStrLn $ show height
+  putStrLn filename
+  putStrLn "Done"
 
